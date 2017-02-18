@@ -15,8 +15,10 @@
 include(gcconfig.pri)
 
 # You can also define your own local source to add to build
-HEADERS += $${LOCALHEADERS}
-SOURCES += $${LOCALSOURCES}
+HEADERS += $${LOCALHEADERS} \
+    Train/TLSServerController.h
+SOURCES += $${LOCALSOURCES} \
+    Train/TLSServerController.cpp
 
 
 ###=====================
@@ -52,7 +54,7 @@ lessThan(QT_MAJOR_VERSION, 5) {
 } else {
 
     ## QT5 modules we use
-    QT += widgets concurrent serialport multimedia multimediawidgets
+    QT += widgets concurrent serialport multimedia multimediawidgets websockets
 
     ## If building with QT5 there is experimental suport for building
     ## with WebEngine now that WebKit is deprecated in QT 5.6

@@ -71,6 +71,9 @@ DeviceTypes::DeviceTypes()
         "replay back, with a little randomness thrown in."),
         "" },
 #endif
+      { DEV_TLSSERVER,    DEV_TCP,    (char *) "TLSServer", true,  false,
+        tr("Network Server."),
+        "" },
       { 0, 0, NULL, 0, 0, "", "" }
     };
     for (int i=0; SupportedDevices[i].type;i++)

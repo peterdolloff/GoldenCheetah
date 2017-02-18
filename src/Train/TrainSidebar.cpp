@@ -48,6 +48,7 @@
 #endif
 #include "ANTlocalController.h"
 #include "NullController.h"
+#include "TLSServerController.h"
 #ifdef QT_BLUETOOTH_LIB
 #include "BT40Controller.h"
 #endif
@@ -643,6 +644,8 @@ TrainSidebar::configChanged(qint32)
 #endif
         } else if (Devices.at(i).type == DEV_NULL) {
             Devices[i].controller = new NullController(this, &Devices[i]);
+        } else if (Devices.at(i).type == DEV_TLSSERVER) {
+            Devices[i].controller = new TLSServerController(this,&Devices[i]);
         } else if (Devices.at(i).type == DEV_ANTLOCAL) {
             Devices[i].controller = new ANTlocalController(this, &Devices[i]);
             // connect slot for receiving remote control commands

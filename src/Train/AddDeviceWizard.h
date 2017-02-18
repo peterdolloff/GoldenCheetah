@@ -38,6 +38,7 @@
 #include "ANTlocalController.h"
 #include "ANTChannel.h"
 #include "NullController.h"
+#include "TLSServerController.h"
 #include "Settings.h"
 
 #include <QWizard>

@@ -201,7 +201,7 @@ DeviceScanner::quickScan(bool deep) // scan quickly or if true scan forever, as 
 #ifdef QT_BLUETOOTH_LIB
     case DEV_BT40 : wizard->controller = new BT40Controller(NULL, NULL); break;
 #endif
-
+    case DEV_TLSSERVER : wizard->controller = new TLSServerController(NULL, NULL); wizard->portSpec = "41300";break;
     default: wizard->controller = NULL; break;
 
     }
