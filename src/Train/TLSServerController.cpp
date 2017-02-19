@@ -39,12 +39,22 @@ TLSServerController::TLSServerController(TrainSidebar *parent,
   : RealtimeController(parent, dc), parent(parent)
 {
     m_pWebSocketServer = 0;
-    port = dc->portSpec.toUInt();
+    if (dc != NULL)
+    {
+        port = dc->portSpec.toUInt();
+    }
+    else
+    {
+        port = 41320;
+    }
 }
 
 TLSServerController::~TLSServerController()
 {
-    m_pWebSocketServer->close();
+    if (m_pWebSocketServer != NULL)
+    {
+        m_pWebSocketServer->close();
+    }
     qDeleteAll(m_clients.begin(), m_clients.end());
 }
 
