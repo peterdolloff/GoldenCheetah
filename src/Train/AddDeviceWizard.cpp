@@ -27,6 +27,7 @@
 // 10. Select Device Type
 // 20. Scan for Device / select Serial
 // 30. Firmware for Fortius
+// 35. TLS Settings
 // 50. Pair for ANT
 // 55. Pair for BTLE
 // 60. Finalise
@@ -50,6 +51,7 @@ AddDeviceWizard::AddDeviceWizard(Context *context) : QWizard(context->mainWindow
     setPage(10, new AddType(this));   // done
     setPage(20, new AddSearch(this)); // done
     setPage(30, new AddFirmware(this)); // done
+    setPage(35, new TLSSettings(this)); // done
     setPage(50, new AddPair(this));     // done
     setPage(55, new AddPairBTLE(this));     // done
     setPage(60, new AddFinal(this));    // todo -- including virtual power
@@ -140,6 +142,7 @@ AddType::clicked(QString p)
         case DEV_CT : next = 60; break; // confirm and add 
         case DEV_MONARK : next = 60; break; // confirm and add
         case DEV_FORTIUS : next = 30; break; // confirm and add 
+        case DEV_TLSSERVER : next = 35; break; // confirm and add
         }
     }
     wizard->next();
@@ -559,6 +562,168 @@ AddFirmware::browseClicked()
 {
     QString file = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Intel Firmware File (*.hex)"));
     if (file != "") name->setText(file);
+}
+
+// TLSServerConnector settings
+TLSSettings::TLSSettings(AddDeviceWizard *parent) : QWizardPage(parent), parent(parent)
+{
+    setTitle(tr("TLS Settings"));
+    setSubTitle(tr("Select Cert and Key files for secure network communication"));
+
+    // create widgets
+    keyBrowse = new QPushButton(tr("Browse"), this);
+    certBrowse = new QPushButton(tr("Browse"), this);
+    caCertBrowse = new QPushButton(tr("Browse"), this);
+
+    copy = new QCheckBox(tr("Copy to Library"));
+    copy->setChecked(true);
+
+    help = new QLabel(this);
+    help->setWordWrap(true);
+    help->setText(tr("TLSServer requires a private key and public "
+                  "certificate file, as well as a CA certificate to "
+                  "operate properly.\n\n"
+                  "These files can be generated with openSSL tools"
+                  "If you choose to copy to library the files will be copied into the "
+                  "GoldenCheetah library, otherwise we will reference it. "));
+
+    privateKeyLabel = new QLabel(tr("Server Private Key File:"), this);
+
+    privateKeyFilename = new QLineEdit(this);
+    privateKeyFilename->setEnabled(false);
+
+    publicCertificateLabel = new QLabel(tr("Server Public Certificate File:"), this);
+
+    publicCertificateFilename = new QLineEdit(this);
+    publicCertificateFilename->setEnabled(false);
+
+    caCertificateLabel = new QLabel(tr("Certificate Authority Certificate File:"), this);
+
+    caCertificateFilename = new QLineEdit(this);
+    caCertificateFilename->setEnabled(false);
+
+    // get settings from saved settings
+    QString TLSKey = appsettings->value(this, TLS_KEY, "").toString();
+    privateKeyFilename->setText(TLSKey);
+
+    QString TLSCert = appsettings->value(this, TLS_CERT, "").toString();
+    publicCertificateFilename->setText(TLSCert);
+
+    QString TLSCaCert = appsettings->value(this, TLS_CACERT, "").toString();
+    caCertificateFilename->setText(TLSCaCert);
+
+    // Layout widgets
+    QHBoxLayout *buttons = new QHBoxLayout;
+    QHBoxLayout *keyfiledetails = new QHBoxLayout;
+    QHBoxLayout *certfiledetails = new QHBoxLayout;
+    QHBoxLayout *cacertfiledetails = new QHBoxLayout;
+
+    keyfiledetails->addWidget(privateKeyLabel);
+    keyfiledetails->addWidget(privateKeyFilename);
+    keyfiledetails->addWidget(keyBrowse);
+    keyfiledetails->addStretch();
+
+    certfiledetails->addWidget(publicCertificateLabel);
+    certfiledetails->addWidget(publicCertificateFilename);
+    certfiledetails->addWidget(certBrowse);
+    certfiledetails->addStretch();
+
+    cacertfiledetails->addWidget(caCertificateLabel);
+    cacertfiledetails->addWidget(caCertificateFilename);
+    cacertfiledetails->addWidget(caCertBrowse);
+    cacertfiledetails->addStretch();
+
+    buttons->addWidget(copy);
+    buttons->addStretch();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->addLayout(keyfiledetails);
+    mainLayout->addLayout(certfiledetails);
+    mainLayout->addLayout(cacertfiledetails);
+    mainLayout->addWidget(help);
+    mainLayout->addStretch();
+    mainLayout->addLayout(buttons);
+
+    // connect widgets
+    connect(keyBrowse, SIGNAL(clicked()), this, SLOT(keyBrowseClicked()));
+    connect(certBrowse, SIGNAL(clicked()), this, SLOT(certBrowseClicked()));
+    connect(caCertBrowse, SIGNAL(clicked()), this, SLOT(caCertBrowseClicked()));
+}
+
+bool
+TLSSettings::validatePage()
+{
+
+    QString keyFilePath = privateKeyFilename->text();
+    QString certFilePath = publicCertificateFilename->text();
+    QString caCertFilePath = caCertificateFilename->text();
+
+    if (keyFilePath == "" || !QFile(keyFilePath).exists()) return false;
+    if (certFilePath == "" || !QFile(certFilePath).exists()) return false;
+    if (caCertFilePath == "" || !QFile(caCertFilePath).exists()) return false;
+
+    // either copy it, or reference it!
+    if (copy->isChecked()) {
+
+        QString FileName = QFileInfo(keyFilePath).fileName();
+        QString targetFilePath = QFileInfo(parent->context->athlete->home->root().canonicalPath() + "/../").canonicalPath() + "/" + FileName;
+
+        // check not the same thing!
+        if(QFileInfo(keyFilePath).canonicalPath() != QFileInfo(targetFilePath).canonicalPath()) {
+            // if the current file exists, wipe it
+            if (QFile(targetFilePath).exists()) QFile(targetFilePath).remove();
+            QFile(keyFilePath).copy(targetFilePath);
+        }
+        privateKeyFilename->setText(targetFilePath);
+
+        FileName = QFileInfo(certFilePath).fileName();
+        targetFilePath = QFileInfo(parent->context->athlete->home->root().canonicalPath() + "/../").canonicalPath() + "/" + FileName;
+
+        // check not the same thing!
+        if(QFileInfo(certFilePath).canonicalPath() != QFileInfo(targetFilePath).canonicalPath()) {
+            // if the current file exists, wipe it
+            if (QFile(targetFilePath).exists()) QFile(targetFilePath).remove();
+            QFile(certFilePath).copy(targetFilePath);
+        }
+        publicCertificateFilename->setText(targetFilePath);
+
+        FileName = QFileInfo(caCertFilePath).fileName();
+        targetFilePath = QFileInfo(parent->context->athlete->home->root().canonicalPath() + "/../").canonicalPath() + "/" + FileName;
+
+        // check not the same thing!
+        if(QFileInfo(caCertFilePath).canonicalPath() != QFileInfo(targetFilePath).canonicalPath()) {
+            // if the current file exists, wipe it
+            if (QFile(targetFilePath).exists()) QFile(targetFilePath).remove();
+            QFile(caCertFilePath).copy(targetFilePath);
+        }
+        caCertificateFilename->setText(targetFilePath);
+    }
+    appsettings->setValue(TLS_KEY, privateKeyFilename->text());
+    appsettings->setValue(TLS_CERT, publicCertificateFilename->text());
+    appsettings->setValue(TLS_CACERT, caCertificateFilename->text());
+
+    return true;
+}
+
+void
+TLSSettings::keyBrowseClicked()
+{
+    QString file = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Key file (*.key)"));
+    if (file != "") privateKeyFilename->setText(file);
+}
+
+void
+TLSSettings::certBrowseClicked()
+{
+    QString file = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Certificate File (*.crt)"));
+    if (file != "") publicCertificateFilename->setText(file);
+}
+
+void
+TLSSettings::caCertBrowseClicked()
+{
+    QString file = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Certificate File (*.crt)"));
+    if (file != "") caCertificateFilename->setText(file);
 }
 
 // Pair devices

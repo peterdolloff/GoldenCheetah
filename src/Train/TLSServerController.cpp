@@ -134,14 +134,20 @@ void TLSServerController::socketDisconnected()
     }
 }
 
-void TLSServerController::onSslErrors(const QList<QSslError> &)
+void TLSServerController::onSslErrors(const QList<QSslError> &errors)
 {
+    for (int i = 0; i < errors.length();i++)
+     {
+        qDebug() << "SSL error: " << errors.at(i).errorString();
+    }
+
     qDebug() << "Ssl errors occurred";
 }
 //! [socketDisconnected]
 
 int TLSServerController::start() {
 
+    QList<QSslCertificate> caCertificates;
 
   if (m_pWebSocketServer) {
       m_pWebSocketServer->close();
@@ -154,13 +160,19 @@ int TLSServerController::start() {
   QSslConfiguration sslConfiguration;
   QFile certFile(QStringLiteral("/home/peter/tls/lt2.crt"));
   QFile keyFile(QStringLiteral("/home/peter/tls/lt2.key"));
+  QFile caCertFile(QStringLiteral("/home/peter/tls/ca.crt"));
   certFile.open(QIODevice::ReadOnly);
   keyFile.open(QIODevice::ReadOnly);
+  caCertFile.open((QIODevice::ReadOnly));
+  QSslCertificate caCertificate(&caCertFile,QSsl::Pem);
   QSslCertificate certificate(&certFile, QSsl::Pem);
   QSslKey sslKey(&keyFile, QSsl::Rsa, QSsl::Pem);
   certFile.close();
   keyFile.close();
-  sslConfiguration.setPeerVerifyMode(QSslSocket::VerifyNone);
+  caCertFile.close();
+  caCertificates.append(caCertificate);
+  sslConfiguration.setCaCertificates(caCertificates);
+  sslConfiguration.setPeerVerifyMode(QSslSocket::AutoVerifyPeer);
   sslConfiguration.setLocalCertificate(certificate);
   sslConfiguration.setPrivateKey(sslKey);
   sslConfiguration.setProtocol(QSsl::TlsV1SslV3);

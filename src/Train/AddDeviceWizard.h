@@ -150,6 +150,36 @@ class AddFirmware : public QWizardPage
         AddDeviceWizard *parent;
 };
 
+class TLSSettings : public QWizardPage
+{
+    Q_OBJECT
+
+    public:
+        TLSSettings(AddDeviceWizard *);
+        bool validatePage();
+        int nextId() const { return 60; }
+
+    public slots:
+        void keyBrowseClicked();
+        void certBrowseClicked();
+        void caCertBrowseClicked();
+
+    private:
+        QCheckBox *copy;
+        QPushButton *ok, *cancel;
+        QPushButton *keyBrowse;
+        QPushButton *certBrowse;
+        QPushButton *caCertBrowse;
+        QLabel *help;
+        QLabel *privateKeyLabel;
+        QLineEdit *privateKeyFilename;
+        QLabel *publicCertificateLabel;
+        QLineEdit *publicCertificateFilename;
+        QLabel *caCertificateLabel;
+        QLineEdit *caCertificateFilename;
+        AddDeviceWizard *parent;
+};
+
 class AddPair : public QWizardPage
 {
     Q_OBJECT
