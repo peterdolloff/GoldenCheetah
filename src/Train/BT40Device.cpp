@@ -44,6 +44,8 @@ BT40Device::BT40Device(QObject *parent, QBluetoothDeviceInfo devinfo) : parent(p
     prevCrankTime = 0;
     prevCrankRevs = 0;
     prevCrankStaleness = -1; 	// indicates prev crank data values aren't measured values
+    hasRandomAddress = true;
+    numberOfServicesDiscovered = 0;
 }
 
 BT40Device::~BT40Device() {
@@ -53,8 +55,15 @@ BT40Device::~BT40Device() {
 
 void BT40Device::connectDevice() {
     qDebug() << "Connecting to device" << m_currentDevice.name();
-    m_control->setRemoteAddressType(QLowEnergyController::RandomAddress);
-    m_control->connectToDevice();
+
+    if (hasRandomAddress == true)
+    {
+        m_control->setRemoteAddressType(QLowEnergyController::RandomAddress);
+    }
+    else {
+        m_control->setRemoteAddressType(QLowEnergyController::PublicAddress);
+    }
+   m_control->connectToDevice();
 }
 
 void BT40Device::disconnectDevice() {
@@ -90,12 +99,20 @@ void BT40Device::serviceDiscovered(QBluetoothUuid uuid) {
 		this, SLOT(serviceError(QLowEnergyService::ServiceError)));
 	service->discoverDetails();
 	m_services.append(service);
+    numberOfServicesDiscovered++;
     }
 }
 
 void BT40Device::serviceScanDone()
 {
     qDebug() << "Service scan done" << "for device" << m_currentDevice.name();
+
+    // if the discovery found no services with the default random address, try a public one and scan again
+    if (numberOfServicesDiscovered == 0 && hasRandomAddress == true)
+    {
+        hasRandomAddress = false;
+        connectDevice();
+    }
 }
 
 void BT40Device::serviceStateChanged(QLowEnergyService::ServiceState s)

@@ -57,6 +57,8 @@ private:
     quint16 prevCrankRevs;
     quint16 prevWheelTime;
     quint32 prevWheelRevs;
+    int numberOfServicesDiscovered;
+    bool hasRandomAddress;
     void getCadence(QDataStream& ds);
     void getWheelRpm(QDataStream& ds);
 };
